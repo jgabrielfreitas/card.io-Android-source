@@ -57,6 +57,7 @@ import io.card.payment.ui.ViewUtil;
  * @version 1.0
  */
 public final class CardIOActivity extends Activity {
+
     /**
      * Boolean extra. Optional. Defaults to <code>false</code>. If set, the card will not be scanned
      * with the camera.
@@ -214,6 +215,8 @@ public final class CardIOActivity extends Activity {
      */
     public static final String EXTRA_KEEP_APPLICATION_THEME = "io.card.payment.keepApplicationTheme";
 
+    public static final String EXTRA_CARD_NUMBER = "CARD_NUMBER";
+
 
     /**
      * Boolean extra. Used for testing only.
@@ -327,9 +330,7 @@ public final class CardIOActivity extends Activity {
             // it seems that this can happen in the autotest loop, but it doesn't seem to break.
             // was happening for lemon... (ugh, long story) but we're now protecting the underlying
             // DMZ/scanner from over-release.
-            Log.i(TAG, String.format(
-                    "INTERNAL WARNING: There are %d (not 1) CardIOActivity allocations!",
-                    numActivityAllocations));
+            Log.i(TAG, String.format( "INTERNAL WARNING: There are %d (not 1) CardIOActivity allocations!", numActivityAllocations));
         }
 
         final Intent clientData = this.getIntent();
@@ -370,8 +371,7 @@ public final class CardIOActivity extends Activity {
             try {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     if(!waitingForPermission) {
-                        if (checkSelfPermission(Manifest.permission.CAMERA)
-                                == PackageManager.PERMISSION_DENIED) {
+                        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) {
 
                             Log.d(TAG, "permission denied to camera - requesting it");
                             String[] permissions = {Manifest.permission.CAMERA};
@@ -469,10 +469,8 @@ public final class CardIOActivity extends Activity {
                 // use reflection here so that the tester can be safely stripped for release
                 // builds.
                 Class<?> testScannerClass = Class.forName("io.card.payment.CardScannerTester");
-                Constructor<?> cons = testScannerClass.getConstructor(this.getClass(),
-                        Integer.TYPE);
-                mCardScanner = (CardScanner) cons.newInstance(new Object[] { this,
-                        mFrameOrientation });
+                Constructor<?> cons = testScannerClass.getConstructor(this.getClass(), Integer.TYPE);
+                mCardScanner = (CardScanner) cons.newInstance(new Object[] { this, mFrameOrientation });
             } else {
                 mCardScanner = new CardScanner(this, mFrameOrientation);
             }
@@ -480,8 +478,7 @@ public final class CardIOActivity extends Activity {
 
             setPreviewLayout();
 
-            orientationListener = new OrientationEventListener(this,
-                    SensorManager.SENSOR_DELAY_UI) {
+            orientationListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
                 @Override
                 public void onOrientationChanged(int orientation) {
                     doOrientationChange(orientation);
@@ -833,7 +830,8 @@ public final class CardIOActivity extends Activity {
 
         final Intent origIntent = getIntent();
         if (origIntent != null && origIntent.getBooleanExtra(EXTRA_SUPPRESS_CONFIRMATION, false)) {
-            Intent dataIntent = new Intent(CardIOActivity.this, DataEntryActivity.class);
+//            Intent dataIntent = new Intent(CardIOActivity.this, DataEntryActivity.class);
+            Intent dataIntent = new Intent();
             if (mDetectedCard != null) {
                 dataIntent.putExtra(EXTRA_SCAN_RESULT, mDetectedCard);
                 mDetectedCard = null;
@@ -844,15 +842,18 @@ public final class CardIOActivity extends Activity {
             setResultAndFinish(RESULT_CONFIRMATION_SUPPRESSED, dataIntent);
         } else {
             new Handler().post(new Runnable() {
-                @Override
                 public void run() {
                     Log.d(TAG, "post(Runnable)");
 
-                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+                    /**
+                     * mDetectedCard is the scanned card, so I'll get his number (what is important for me)
+                     * */
 
-                    Intent dataIntent = new Intent(CardIOActivity.this, DataEntryActivity.class);
-                    Util.writeCapturedCardImageIfNecessary(origIntent, dataIntent, mOverlay);
+//                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+//                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+
+                    Intent dataIntent = new Intent();
+//                    Util.writeCapturedCardImageIfNecessary(origIntent, dataIntent, mOverlay);
 
                     if (mOverlay != null) {
                         mOverlay.markupCard();
@@ -863,6 +864,7 @@ public final class CardIOActivity extends Activity {
                     }
                     if (mDetectedCard != null) {
                         dataIntent.putExtra(EXTRA_SCAN_RESULT, mDetectedCard);
+//                        dataIntent.putExtra(EXTRA_CARD_NUMBER, mDetectedCard.cardNumber);
                         mDetectedCard = null;
                     } else {
                         /*
@@ -874,11 +876,10 @@ public final class CardIOActivity extends Activity {
                         dataIntent.putExtra(EXTRA_MANUAL_ENTRY_RESULT, true);
                     }
 
-                    dataIntent.putExtras(getIntent()); // passing on any received params (such as isCvv
-                    // and language)
-                    dataIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
-                            | Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                    startActivityForResult(dataIntent, DATA_ENTRY_REQUEST_ID);
+//                    dataIntent.putExtras(getIntent()); // passing on any received params (such as isCvv  and language)
+//                    dataIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS | Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+//                    startActivityForResult(dataIntent, DATA_ENTRY_REQUEST_ID);
+                    setResultAndFinish(DATA_ENTRY_REQUEST_ID, dataIntent);
                 }
             });
         }
@@ -952,8 +953,7 @@ public final class CardIOActivity extends Activity {
         // top level container
         mMainLayout = new FrameLayout(this);
         mMainLayout.setBackgroundColor(Color.BLACK);
-        mMainLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT));
+        mMainLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         FrameLayout previewFrame = new FrameLayout(this);
         previewFrame.setId(FRAME_ID);
@@ -967,8 +967,8 @@ public final class CardIOActivity extends Activity {
         mOverlay.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT));
         if (getIntent() != null) {
-            boolean useCardIOLogo = getIntent().getBooleanExtra(EXTRA_USE_CARDIO_LOGO, false);
-            mOverlay.setUseCardIOLogo(useCardIOLogo);
+//            boolean useCardIOLogo = getIntent().getBooleanExtra(EXTRA_USE_CARDIO_LOGO, false);
+//            mOverlay.setUseCardIOLogo(useCardIOLogo);
 
             int color = getIntent().getIntExtra(EXTRA_GUIDE_COLOR, 0);
 
@@ -996,8 +996,7 @@ public final class CardIOActivity extends Activity {
 
         previewFrame.addView(mOverlay);
 
-        RelativeLayout.LayoutParams previewParams = new RelativeLayout.LayoutParams(
-                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        RelativeLayout.LayoutParams previewParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         previewParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
         previewParams.addRule(RelativeLayout.ABOVE, UIBAR_ID);
         mMainLayout.addView(previewFrame, previewParams);
@@ -1060,8 +1059,7 @@ public final class CardIOActivity extends Activity {
             int resourceId = getIntent().getIntExtra(EXTRA_SCAN_OVERLAY_LAYOUT_ID, -1);
             if (resourceId != -1) {
                 customOverlayLayout = new LinearLayout(this);
-                customOverlayLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT));
+                customOverlayLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
                 LayoutInflater inflater = this.getLayoutInflater();
 

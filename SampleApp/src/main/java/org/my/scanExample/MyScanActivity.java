@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import io.card.payment.CardIOActivity;
 import io.card.payment.CreditCard;
@@ -55,6 +56,7 @@ public class MyScanActivity extends Activity {
         scanIntent.putExtra(CardIOActivity.EXTRA_REQUIRE_POSTAL_CODE, false); // default: false
         scanIntent.putExtra(CardIOActivity.EXTRA_RESTRICT_POSTAL_CODE_TO_NUMERIC_ONLY, false); // default: false
         scanIntent.putExtra(CardIOActivity.EXTRA_REQUIRE_CARDHOLDER_NAME, false); // default: false
+//        scanIntent.putExtra(CardIOActivity.EXTRA_HIDE_CARDIO_LOGO, true); // default: false
 
         // hides the manual entry button
         // if set, developers should provide their own manual entry mechanism in the app
@@ -97,6 +99,8 @@ public class MyScanActivity extends Activity {
             if (scanResult.cardholderName != null) {
                 resultStr += "Cardholder Name : " + scanResult.cardholderName + "\n";
             }
+
+            Toast.makeText(MyScanActivity.this, "card number motherfuka: " + scanResult.cardNumber, Toast.LENGTH_LONG).show();
         } else {
             resultStr = "Scan was canceled.";
         }
